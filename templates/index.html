@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JPG → WebP Converter</title>
+    <style>
+        :root {
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            --bg: #f2f5ff;
+            --bg-dark: #0f172a;
+            --panel: #ffffff;
+            --panel-muted: #eef2ff;
+            --text: #0f172a;
+            --subtle: #475569;
+            --accent: #2563eb;
+            --accent-soft: rgba(37, 99, 235, 0.08);
+            --accent-border: rgba(37, 99, 235, 0.18);
+            --border: rgba(15, 23, 42, 0.08);
+            --error: #e11d48;
+            --warning: #ca8a04;
+            --radius: 22px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15), transparent 40%),
+                        radial-gradient(circle at 90% 10%, rgba(248, 113, 113, 0.15), transparent 45%),
+                        var(--bg);
+            color: var(--text);
+        }
+
+        .shell {
+            width: min(1200px, 100%);
+            margin: 0 auto;
+            padding: clamp(2rem, 4vw, 4rem) clamp(1.25rem, 4vw, 3rem) 3rem;
+            display: grid;
+            gap: 2.5rem;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: clamp(1.5rem, 3vw, 2.5rem);
+            align-items: stretch;
+        }
+
+        .card {
+            background: var(--panel);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: clamp(1.5rem, 3vw, 3rem);
+            box-shadow: 0 25px 70px rgba(15, 23, 42, 0.08);
+        }
+
+        .hero-title {
+            font-size: clamp(2.2rem, 5vw, 3.5rem);
+            margin: 0 0 1rem;
+            line-height: 1.1;
+        }
+
+        .lead {
+            margin: 0 0 1.75rem;
+            color: var(--subtle);
+            font-size: 1.1rem;
+            max-width: 46ch;
+        }
+
+        .pill-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 2rem;
+        }
+
+        .pill {
+            border-radius: 999px;
+            padding: 0.65rem 1rem;
+            background: var(--panel-muted);
+            color: var(--subtle);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .stat {
+            min-width: 140px;
+        }
+
+        .stat h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: var(--accent);
+        }
+
+        .stat p {
+            margin: 0.35rem 0 0;
+            color: var(--subtle);
+        }
+
+        .alerts {
+            margin-bottom: 1rem;
+        }
+
+        .alert {
+            padding: 0.8rem 1rem;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .alert.error {
+            background: rgba(225, 29, 72, 0.08);
+            border-color: rgba(225, 29, 72, 0.15);
+            color: var(--error);
+        }
+
+        .alert.warning {
+            background: rgba(202, 138, 4, 0.08);
+            border-color: rgba(202, 138, 4, 0.18);
+            color: var(--warning);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .dropzone {
+            border: 2px dashed var(--accent-border);
+            border-radius: var(--radius);
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            background: var(--accent-soft);
+            transition: border-color 0.25s ease, transform 0.25s ease, background 0.25s ease;
+        }
+
+        .dropzone.dragover {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .dropzone h2 {
+            margin: 0 0 0.4rem;
+            font-size: 1.4rem;
+        }
+
+        .dropzone p {
+            margin: 0 0 1.15rem;
+            color: var(--subtle);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            padding: 0.85rem 1.6rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn.secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent-border);
+            box-shadow: none;
+        }
+
+        .file-list {
+            border: 1px dashed rgba(15, 23, 42, 0.15);
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            background: #fff;
+        }
+
+        .file-list strong {
+            display: block;
+            margin-bottom: 0.6rem;
+            color: var(--text);
+        }
+
+        .file-list ul {
+            margin: 0;
+            padding-left: 1.1rem;
+            color: var(--subtle);
+        }
+
+        .help-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+            color: var(--subtle);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--subtle);
+            font-size: 0.95rem;
+        }
+
+        code {
+            background: rgba(15, 23, 42, 0.08);
+            padding: 0.15rem 0.4rem;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="layout">
+            <article class="card">
+                <p style="text-transform: uppercase; letter-spacing: 0.3em; color: var(--subtle); font-size: 0.8rem; margin: 0 0 1.2rem;">
+                    Web tooling studio
+                </p>
+                <h1 class="hero-title">High-quality JPG → WebP conversions without the busywork.</h1>
+                <p class="lead">
+                    Upload your marketing shots, UI mockups, or product images and get tuned WebP
+                    assets instantly. We run everything in-memory, keep your color fidelity, and bundle
+                    the results into a single ZIP download.
+                </p>
+                <div class="pill-grid">
+                    <span class="pill">✨ quality=95, method=6 defaults</span>
+                    <span class="pill">🗂️ Multi-select & drag-and-drop</span>
+                    <span class="pill">⚡ One-click ZIP export</span>
+                    <span class="pill">🛡️ Nothing is persisted server-side</span>
+                </div>
+                <div class="stats">
+                    <div class="stat">
+                        <h3>64 MB</h3>
+                        <p>Per upload window</p>
+                    </div>
+                    <div class="stat">
+                        <h3>RGB safe</h3>
+                        <p>Auto converts CMYK</p>
+                    </div>
+                    <div class="stat">
+                        <h3>Docker ready</h3>
+                        <p>Ships on port 5008</p>
+                    </div>
+                </div>
+            </article>
+
+            <article class="card" aria-labelledby="upload-title">
+                <div class="alerts">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert {{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+
+                <form id="upload-form" action="{{ url_for('convert') }}" method="POST" enctype="multipart/form-data">
+                    <label for="file-input" class="dropzone" id="dropzone">
+                        <h2 id="upload-title">Drop JPGs here or click to browse</h2>
+                        <p>Accepts .jpg or .jpeg • Returns a single ZIP bundle</p>
+                        <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                            <button type="button" class="btn secondary" onclick="document.getElementById('file-input').click()">
+                                Select files
+                            </button>
+                            <span style="align-self: center; color: var(--subtle); font-size: 0.9rem;">or drag anywhere in the panel</span>
+                        </div>
+                        <input class="file-input" id="file-input" type="file" name="images" accept=".jpg,.jpeg,image/jpeg" multiple required />
+                        <div class="file-list" id="file-list" hidden>
+                            <strong>Selected files</strong>
+                            <ul id="file-names"></ul>
+                        </div>
+                    </label>
+
+                    <div class="help-row">
+                        <span>Need to trim metadata? Extend <code>app.py</code>.</span>
+                        <button type="submit" class="btn">
+                            Convert &amp; download ZIP
+                        </button>
+                    </div>
+                </form>
+            </article>
+        </section>
+
+       
+    </main>
+
+    <script>
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("file-input");
+        const fileList = document.getElementById("file-list");
+        const fileNames = document.getElementById("file-names");
+
+        const updateFileList = (files) => {
+            if (!files.length) {
+                fileList.hidden = true;
+                fileNames.innerHTML = "";
+                return;
+            }
+            fileList.hidden = false;
+            fileNames.innerHTML = "";
+            Array.from(files).forEach(file => {
+                const li = document.createElement("li");
+                li.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                fileNames.appendChild(li);
+            });
+        };
+
+        dropzone.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            dropzone.classList.add("dragover");
+        });
+
+        dropzone.addEventListener("dragleave", () => {
+            dropzone.classList.remove("dragover");
+        });
+
+        dropzone.addEventListener("drop", (event) => {
+            event.preventDefault();
+            dropzone.classList.remove("dragover");
+            const dt = event.dataTransfer;
+            if (!dt?.files?.length) return;
+            fileInput.files = dt.files;
+            updateFileList(dt.files);
+        });
+
+        fileInput.addEventListener("change", () => {
+            updateFileList(fileInput.files);
+        });
+    </script>
+</body>
+</html>
+
