@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }} · JPG → WebP Converter</title>
+    <style>
+        :root {
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            --bg: #f2f5ff;
+            --panel: #ffffff;
+            --text: #0f172a;
+            --subtle: #475569;
+            --accent: #2563eb;
+            --accent-soft: rgba(37, 99, 235, 0.08);
+            --border: rgba(15, 23, 42, 0.08);
+            --error: #e11d48;
+            --radius: 22px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.15), transparent 40%),
+                        radial-gradient(circle at 85% 0%, rgba(248, 113, 113, 0.18), transparent 45%),
+                        var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card {
+            background: var(--panel);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: clamp(1.5rem, 4vw, 3rem);
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.08);
+            max-width: min(520px, 90vw);
+            text-align: center;
+        }
+
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            color: var(--subtle);
+            font-size: 0.8rem;
+            margin: 0 0 1rem;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(225, 29, 72, 0.12);
+            color: var(--error);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            margin: 0 0 0.75rem;
+            font-size: clamp(2rem, 5vw, 2.8rem);
+        }
+
+        .lead {
+            margin: 0 auto 1.5rem;
+            color: var(--subtle);
+            max-width: 40ch;
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            padding: 0.85rem 1.6rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn.secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            box-shadow: none;
+        }
+
+        .hint {
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            color: var(--subtle);
+        }
+    </style>
+</head>
+<body>
+    <section class="card">
+        <p class="eyebrow">Web tooling studio</p>
+        <div class="status-chip">Error {{ status_code }}</div>
+        <h1>{{ title }}</h1>
+        <p class="lead">{{ message }}</p>
+        <div class="actions">
+            <a class="btn" href="{{ home_url }}">Back to uploader</a>
+            <button class="btn secondary" type="button" onclick="window.location.reload()">Try again</button>
+        </div>
+        <p class="hint">If the issue persists, refresh the page or start a new upload session.</p>
+    </section>
+</body>
+</html>
+

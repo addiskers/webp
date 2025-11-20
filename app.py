@@ -20,10 +20,12 @@ from flask import (
 from PIL import Image, UnidentifiedImageError
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException
 
 
 WEBP_EXPORT_ARGS = {"format": "WEBP", "quality": 95, "method": 6, "lossless": False}
 ALLOWED_SUFFIXES = {".jpg", ".jpeg"}
+MAX_FILE_COUNT = 200
 
 
 def create_app() -> Flask:
@@ -38,6 +40,14 @@ def create_app() -> Flask:
     @app.post("/convert")
     def convert() -> Response:
         files = extract_files(request.files.getlist("images"))
+        if len(files) > MAX_FILE_COUNT:
+            flash(
+                f"Please upload at most {MAX_FILE_COUNT} images at once. "
+                f"We received {len(files)} files.",
+                "error",
+            )
+            return redirect(url_for("index"))
+
         if not files:
             flash("Please choose at least one JPG/JPEG image.", "error")
             return redirect(url_for("index"))
@@ -60,6 +70,30 @@ def create_app() -> Flask:
             mimetype="application/zip",
             as_attachment=True,
             download_name=filename,
+        )
+
+    @app.errorhandler(413)
+    def handle_request_entity_too_large(exc: HTTPException) -> Tuple[str, int]:
+        return render_error_page(
+            413,
+            "Upload too large",
+            "Your upload exceeded the 64 MB limit. Try converting fewer files at a time.",
+        )
+
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(exc: HTTPException) -> Tuple[str, int]:
+        status_code = getattr(exc, "code", 500) or 500
+        title = getattr(exc, "name", "Application error")
+        description = getattr(exc, "description", "We couldn't process your request.")
+        return render_error_page(status_code, title, description)
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(exc: Exception) -> Tuple[str, int]:
+        app.logger.exception("Unhandled error during request", exc_info=exc)
+        return render_error_page(
+            500,
+            "Unexpected error",
+            "We hit a snag while processing your images. Please try again.",
         )
 
     return app
@@ -95,6 +129,19 @@ def convert_to_webp(
             successes.append(webp_name)
 
     return successes, failures, archive
+
+
+def render_error_page(status_code: int, title: str, message: str) -> Tuple[str, int]:
+    return (
+        render_template(
+            "error.html",
+            status_code=status_code,
+            title=title,
+            message=message,
+            home_url=url_for("index"),
+        ),
+        status_code,
+    )
 
 
 def convert_single_stream(upload: FileStorage) -> BytesIO:

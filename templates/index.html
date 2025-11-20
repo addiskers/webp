@@ -206,16 +206,45 @@
             background: #fff;
         }
 
-        .file-list strong {
-            display: block;
+        .file-list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
             margin-bottom: 0.6rem;
+        }
+
+        .file-list strong {
             color: var(--text);
+        }
+
+        .file-count {
+            font-size: 0.9rem;
+            color: var(--subtle);
+            background: var(--panel-muted);
+            border-radius: 999px;
+            padding: 0.15rem 0.75rem;
         }
 
         .file-list ul {
             margin: 0;
             padding-left: 1.1rem;
             color: var(--subtle);
+        }
+
+        .limit-note {
+            margin: 1rem 0 0;
+            font-size: 0.92rem;
+            color: var(--subtle);
+        }
+
+        .client-alert {
+            margin-top: 1rem;
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            border: 1px dashed rgba(37, 99, 235, 0.35);
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--accent);
         }
 
         .help-row {
@@ -260,6 +289,7 @@
                     <span class="pill">🗂️ Multi-select & drag-and-drop</span>
                     <span class="pill">⚡ One-click ZIP export</span>
                     <span class="pill">🛡️ Nothing is persisted server-side</span>
+                    <span class="pill">📸 Up to 200 images per batch</span>
                 </div>
                 <div class="stats">
                     <div class="stat">
@@ -291,19 +321,24 @@
                 <form id="upload-form" action="{{ url_for('convert') }}" method="POST" enctype="multipart/form-data">
                     <label for="file-input" class="dropzone" id="dropzone">
                         <h2 id="upload-title">Drop JPGs here or click to browse</h2>
-                        <p>Accepts .jpg or .jpeg • Returns a single ZIP bundle</p>
+                        <p>Accepts up to 200 .jpg or .jpeg images • Returns a single ZIP bundle</p>
                         <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
                             <button type="button" class="btn secondary" onclick="document.getElementById('file-input').click()">
                                 Select files
                             </button>
                             <span style="align-self: center; color: var(--subtle); font-size: 0.9rem;">or drag anywhere in the panel</span>
                         </div>
+                        <p class="limit-note">Need to convert more than 200 images? Just submit another batch.</p>
                         <input class="file-input" id="file-input" type="file" name="images" accept=".jpg,.jpeg,image/jpeg" multiple required />
                         <div class="file-list" id="file-list" hidden>
-                            <strong>Selected files</strong>
+                            <div class="file-list-header">
+                                <strong>Selected files</strong>
+                                <span class="file-count" id="file-count">0 / 200</span>
+                            </div>
                             <ul id="file-names"></ul>
                         </div>
                     </label>
+                    <div class="client-alert" id="client-alert" hidden aria-live="polite"></div>
 
                     <div class="help-row">
                         <span>Need to trim metadata? Extend <code>app.py</code>.</span>
@@ -315,19 +350,59 @@
             </article>
         </section>
 
-       
+        <footer>
+            Powered by a lightweight Flask worker – max 200 images / 64&nbsp;MB per batch.
+        </footer>
     </main>
 
     <script>
+        const MAX_FILES = 200;
         const dropzone = document.getElementById("dropzone");
         const fileInput = document.getElementById("file-input");
         const fileList = document.getElementById("file-list");
         const fileNames = document.getElementById("file-names");
+        const fileCount = document.getElementById("file-count");
+        const clientAlert = document.getElementById("client-alert");
+
+        const setClientAlert = (message = "") => {
+            if (!message) {
+                clientAlert.hidden = true;
+                clientAlert.textContent = "";
+                return;
+            }
+            clientAlert.hidden = false;
+            clientAlert.textContent = message;
+        };
+
+        const enforceFileLimit = (files) => {
+            if (files.length <= MAX_FILES || typeof DataTransfer === "undefined") {
+                if (files.length <= MAX_FILES) {
+                    setClientAlert("");
+                } else {
+                    setClientAlert(`Please select up to ${MAX_FILES} images per batch.`);
+                }
+                return files;
+            }
+
+            const trimmed = new DataTransfer();
+            Array.from(files)
+                .slice(0, MAX_FILES)
+                .forEach(file => trimmed.items.add(file));
+
+            setClientAlert(`Only the first ${MAX_FILES} images were added. Submit another batch for the rest.`);
+            return trimmed.files;
+        };
 
         const updateFileList = (files) => {
-            if (!files.length) {
+            const count = files.length;
+            if (fileCount) {
+                fileCount.textContent = `${count} / ${MAX_FILES}`;
+            }
+
+            if (!count) {
                 fileList.hidden = true;
                 fileNames.innerHTML = "";
+                setClientAlert("");
                 return;
             }
             fileList.hidden = false;
@@ -353,11 +428,16 @@
             dropzone.classList.remove("dragover");
             const dt = event.dataTransfer;
             if (!dt?.files?.length) return;
-            fileInput.files = dt.files;
-            updateFileList(dt.files);
+            const limitedFiles = enforceFileLimit(dt.files);
+            fileInput.files = limitedFiles;
+            updateFileList(limitedFiles);
         });
 
         fileInput.addEventListener("change", () => {
+            const limitedFiles = enforceFileLimit(fileInput.files);
+            if (limitedFiles !== fileInput.files) {
+                fileInput.files = limitedFiles;
+            }
             updateFileList(fileInput.files);
         });
     </script>
